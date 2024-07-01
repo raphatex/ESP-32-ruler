@@ -20,8 +20,9 @@ void checkButtons(){
   }
 }
 
-int Convert(float degree){
-    double pi = 3.14159265359;
+const double pi = 3.14;
+
+float Convert(float degree){
     return (degree * (pi / 180));
 }
 
@@ -48,15 +49,15 @@ int MAP[] =
 
 bool droite = 0;
 bool gauche = 0;
-int longueur_palette = 20;
+const int longueur_palette = 20;
 int x_palette = 63 - longueur_palette/2;
 int last_update_palette = millis();
 
 int num_particules = 1;
 int last_update = millis();
-int vitesse = 2;
-int angle;
-int angle_temp;
+const int vitesse = 2;
+float angle;
+float angle_temp;
 float x;
 float y;
 float x_temp;
@@ -92,21 +93,24 @@ bool colision_palette(){
 
 bool colision_bloc(int x, int y){
   for(int i = y; i < y+2; i++){
-        if(MAP[i] != 0){
-          for(int n = 0; n < 2; n++){
-            if (bitRead(MAP[i], n+x)){
-              bitWrite(MAP[i], n+x, 0);
-              return 1;
-            }
-          }
+    if(MAP[i] != 0){
+      for(int n = 0; n < 2; n++){
+        if (bitRead(MAP[i], n+x)){
+          bitWrite(MAP[i], n+x, 0);
+          return 1;
         }
       }
-      return 0;
+    }
+  }
+  return 0;
 }
 
 void setup(){
+  Serial.begin(115200);
   randomSeed(analogRead(26));
   angles[0] = Convert(-random(60,120));
+  Serial.print("angle 0 :");
+  Serial.println(angles[0]);
   for(int i = 1; i < NUM_PARTICLES_MAX; i++){
     angles[i] = Convert(random(0,359));
   }
@@ -114,11 +118,8 @@ void setup(){
   for(int i = 0; i < 9; i++){
     pinMode(buttons[i], INPUT_PULLUP);
   }
-  Serial.begin(115200);
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
-  }
+  display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+
   display.clearDisplay();
 
   drawMap();
@@ -141,6 +142,7 @@ void loop(){
 
   display.clearDisplay();
   drawMap();
+  display.fillRect(x_palette, 58, longueur_palette, 4, SSD1306_WHITE);
 
   if(millis() - last_update >= 10){
     last_update = millis();
@@ -158,24 +160,32 @@ void loop(){
 
       colision_block_bool = colision_bloc(x_map, y_map);
   
-      if(y >= 62 or y <= 1 or colision_palette() or (colision_block_bool and angle >= 180)){
-        angle = -angle+Convert(0.5);
+      if(y >= 62 or y <= 1 or colision_palette() or (colision_block_bool and angle >= Convert(180))){
+        angle = -angle+Convert(random(-20,20));
+        Serial.println(angle);
        }
-       else if(x >= 126 or x <= 1 or (colision_block_bool and angle <= 180)){
-        angle = Convert(179.5)-angle;
+       else if(x >= 126 or x <= 1 or (colision_block_bool and angle <= Convert(180))){
+        angle = Convert(random(160,200))-angle;
        }
 
       angles[i/2] = angle;
       coord[i] = x;
       coord[i+1] = y;
+
+      display.fillRect(int(x)-1, int(y)-1, 3, 3, SSD1306_WHITE);
     }
+    
+    display.display();
   }
   
+  /*
   for(int i=0; i<num_particules*2 ; i+=2){
     x = coord[i];
     y = coord[i+1];
     display.fillRect(int(x)-1, int(y)-1, 3, 3, SSD1306_WHITE);
   }
   display.display();
-  delay(10);
+  */
+  
+  delay(1);
 }
